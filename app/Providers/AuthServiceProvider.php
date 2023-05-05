@@ -7,6 +7,8 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 use Laravel\Fortify\Fortify;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -28,12 +30,25 @@ class AuthServiceProvider extends ServiceProvider
 
         Fortify::authenticateUsing(function ($request) {
             Log::alert($request);
+
+            // Validar si el usuario existe en la tabla "users"
+            $user = User::where('email', $request->username)->first();
+            if ($user) {
+                // Autenticar al usuario con la tabla "users"
+                if (Hash::check($request->password, $user->password)) {
+                    return $user;
+                }
+            }
+
             $validated = Auth::validate([
                 'cn' => $request->username,
                 'password' => $request->password
             ]);
 
-            return $validated ? Auth::getLastAttempted() : null;
+            $result =  $validated ? Auth::getLastAttempted() : null;
+            Log::alert($result);
+            return $result;
+
         });
     }
 }
